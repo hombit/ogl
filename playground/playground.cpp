@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 
 #include <GL/glew.h>
 
@@ -9,7 +8,7 @@ GLFWwindow* window;
 #include <glm/glm.hpp>
 using namespace glm;
 
-int main( void )
+int playground()
 {
 	// Initialise GLFW
 	if( !glfwInit() )

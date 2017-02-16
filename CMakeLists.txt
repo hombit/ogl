@@ -513,7 +513,9 @@ set_target_properties(tutorial17_rotations PROPERTIES XCODE_ATTRIBUTE_CONFIGURAT
 create_target_launcher(tutorial17_rotations WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tutorial17_rotations/")
 
 # User playground
-add_executable(playground 
+add_executable(playground
+	playground/main.cpp
+	playground/playground.h
 	playground/playground.cpp
 	common/shader.cpp
 	common/shader.hpp
