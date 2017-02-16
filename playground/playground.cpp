@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 
 #include <GL/glew.h>
 
@@ -6,6 +7,8 @@
 GLFWwindow* window;
 
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
 #include <common/shader.hpp>
@@ -77,6 +80,13 @@ int playground()
             "playground/SimpleVertexShader.glsl",
             "playground/SimpleFragmentShader.glsl"
     );
+
+	glm::mat4 myMatrix = glm::mat4(2.0f);
+	glm::vec4 myVector(10.0f, -10.0f, 10.0f, 0.0f);
+	glm::vec4 transformedVector = myMatrix * myVector; // guess the result
+	for ( int i =  0; i < 4; ++i ) {
+		std::cout << transformedVector[i] << std::endl;
+	}
 
 	do{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
