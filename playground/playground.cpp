@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
-#include <vector>
+#include <cmath>
+#include <functional>
 
 #include <GL/glew.h>
 
@@ -9,10 +10,75 @@ GLFWwindow* window;
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/polar_coordinates.hpp>
 using namespace glm;
 
 #include <common/shader.hpp>
+
+
+double ScrollXOffset = 0.;
+double ScrollYOffset = 0.;
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset){
+    ScrollXOffset += xoffset;
+    ScrollYOffset += yoffset;
+}
+
+
+class MVP{
+protected:
+	const float scale0;
+	float scale;
+    const float mouseSpeed = 0.005f;
+    float lat = 0.0f;
+    float lon = 0.0f;
+
+    void positionFromInput(){
+        // Get coursor position
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+
+        // Get window size
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+        lon += mouseSpeed * float(width/2  - xpos);
+        lat += mouseSpeed * float(height/2 - ypos);
+
+		// Set scale via scroll
+        scale = (float) exp(ScrollYOffset) * scale0;
+    }
+
+public:
+    MVP(float scale): scale0(scale), scale(scale){
+        glfwSetScrollCallback(window, ScrollCallback);
+    };
+
+	glm::mat4 getProjectionMatrix(){
+		return glm::ortho(
+				-scale,scale,
+				-scale,scale,
+				0.0f,100.0f
+		);
+	}
+
+	glm::mat4 getViewMatrix(glm::vec2 spherical_coordinates){
+		return glm::lookAt(
+				scale * glm::euclidean(spherical_coordinates),
+				glm::vec3(0,0,0), // and looks at the origin
+				glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+		);
+	}
+
+	glm::mat4 getViewMatrix(){
+		return getViewMatrix(glm::vec2(lat, lon));
+	}
+
+	glm::mat4 mvp(){
+		positionFromInput();
+		return getProjectionMatrix() * getViewMatrix();
+	}
+};
+
 
 int playground()
 {
@@ -165,24 +231,8 @@ int playground()
             "playground/ColorFragmentShader.glsl"
     );
 
-	// Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
-	glm::mat4 Projection = glm::perspective(glm::radians(90.0f), (float) width / (float)height, 0.1f, 100.0f);
-//	glm::mat4 Projection = glm::ortho(-5.0f,5.0f,-5.0f,5.0f,0.0f,50.0f);
-	// Camera matrix
-	glm::mat4 View = glm::lookAt(
-			glm::vec3(4,3,-3), // Camera is at (4,3,3), in World Space
-			glm::vec3(0,0,0), // and looks at the origin
-			glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-	);
-	// Model matrix : an identity matrix (model will be at the origin)
-	glm::mat4 TranslationMatrix = glm::translate(glm::vec3(0,0,0));
-    glm::mat4 RotationMatrix = glm::rotate(0.0f, glm::vec3(0,0,1));
-	glm::mat4 ScaleMatrix = glm::scale(glm::vec3(1,1,1));
-	glm::mat4 Model = TranslationMatrix * RotationMatrix * ScaleMatrix;
-	// Our ModelViewProjection : multiplication of our 3 matrices
-	glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
-	// Get a handle for our "MVP" uniform
-	// Only during the initialisation
+    glm::mat4 ModelMatrix = glm::mat4(1.0f);
+
 	GLint MatrixID = glGetUniformLocation(programID, "MVP");
 
 	do{
@@ -190,6 +240,9 @@ int playground()
 
 		// Use our shader
 		glUseProgram(programID);
+
+		auto mvp_ = MVP(3.0f);
+		auto mvp = mvp_.mvp();
 
 		// Send our transformation to the currently bound shader, in the "MVP" uniform
 		// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)

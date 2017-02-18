@@ -16,6 +16,9 @@ if( CMAKE_BINARY_DIR MATCHES " " )
 endif()
 
 
+# C++11
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 
 # Compile external dependencies 
 add_subdirectory (external)
