@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <iostream>
-#include <cmath>
 #include <vector>
 
 #include <GL/glew.h>
@@ -168,7 +167,7 @@ int playground()
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals;
-	bool res = loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
+	loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
 
 	// Load it into a VBO
 
