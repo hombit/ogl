@@ -120,7 +120,7 @@ int playground()
 	glfwMakeContextCurrent(window);
 
 	// Initialize GLEW
-    glewExperimental = true; // Needed for core profile
+    glewExperimental = (GLboolean) true; // Needed for core profile
 	if (glewInit() != GLEW_OK) {
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		getchar();
