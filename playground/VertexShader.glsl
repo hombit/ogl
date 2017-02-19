@@ -2,23 +2,37 @@
 
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 vertexPosition_modelspace;
-// Notice that the "1" here equals the "1" in glVertexAttribPointer
 layout(location = 1) in vec2 vertexUV;
+layout(location = 2) in vec3 vertexNormal_modelspace;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
+uniform mat4 MV;
+uniform mat4 V;
+uniform vec3 LightPosition_worldspace;
 
 // Output data ; will be interpolated for each fragment.
 out vec2 UV;
+out vec3 Normal_cameraspace;
+out vec3 LightDirection_cameraspace;
+out vec3 EyeDirection_cameraspace;
 
 void main() {
     // Output position of the vertex, in clip space : MVP * position
     gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
 
-    // The color of each vertex will be interpolated
-    // to produce the color of each fragment
-//    fragmentColor = vertexColor;
-
     // UV of the vertex. No special space for this one.
     UV = vertexUV;
+
+    // Vector that goes from the vertex to the camera, in camera space.
+    // In camera space, the camera is at the origin (0,0,0).
+    vec3 vertexPosition_cameraspace = ( MV * vec4(vertexPosition_modelspace,1)).xyz;
+    EyeDirection_cameraspace = vec3(0,0,0) - vertexPosition_cameraspace;
+
+    // Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
+    vec3 LightPosition_cameraspace = ( V * vec4(LightPosition_worldspace,1)).xyz;
+    LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
+
+    // Normal of the the vertex, in camera space
+    Normal_cameraspace = ( MV * vec4(vertexNormal_modelspace,0)).xyz; // Only correct if ModelMatrix does not scale the model ! Use its inverse transpose if not.
 }

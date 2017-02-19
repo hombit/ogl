@@ -53,6 +53,7 @@ protected:
 public:
     MVP(float scale): scale0(scale), scale(scale){
         glfwSetScrollCallback(window, ScrollCallback);
+		positionFromInput();
     };
 
 	glm::mat4 getProjectionMatrix(){
@@ -75,9 +76,16 @@ public:
 		return getViewMatrix(glm::vec2(lat, lon));
 	}
 
+	glm::mat4 getModelMatrix(){
+		return glm::mat4(1.0f);
+	}
+
+	glm::mat4 mv(){
+		return getViewMatrix() * getModelMatrix();
+	}
+
 	glm::mat4 mvp(){
-		positionFromInput();
-		return getProjectionMatrix() * getViewMatrix();
+		return getProjectionMatrix() * getViewMatrix() * getModelMatrix();
 	}
 };
 
@@ -144,21 +152,22 @@ int playground()
             "playground/FragmentShader.glsl"
     );
 
-    glm::mat4 ModelMatrix = glm::mat4(1.0f);
-
-	GLint MatrixID = glGetUniformLocation(programID, "MVP");
+	GLint MVP_ID = glGetUniformLocation(programID, "MVP");
+	GLint MV_ID = glGetUniformLocation(programID, "MV");
+	GLint View_ID = glGetUniformLocation(programID, "V");
+	GLint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
 	// Load the texture
 	GLuint Texture = loadDDS("playground/uvmap.DDS");
-
 	// Get a handle for our "myTextureSampler" uniform
 	GLint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
+
 
 	// Read our .obj file
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals; // Won't be used at the moment.
-	bool res = loadOBJ("playground/cube.obj", vertices, uvs, normals);
+	bool res = loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
 
 	// Load it into a VBO
 
@@ -172,17 +181,28 @@ int playground()
 	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
+	GLuint normalbuffer;
+	glGenBuffers(1, &normalbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+
 	do{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Use our shader
 		glUseProgram(programID);
 
-		auto mvp = MVP(3.0f).mvp();
+		auto mvp_ = MVP(3.0f);
 
 		// Send our transformation to the currently bound shader, in the "MVP" uniform
 		// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+		glUniformMatrix4fv(MVP_ID,   1, GL_FALSE, &mvp_.mvp()[0][0]);
+		glUniformMatrix4fv(MV_ID,    1, GL_FALSE, &mvp_.mv() [0][0]);
+		glUniformMatrix4fv(View_ID,  1, GL_FALSE, &mvp_.getViewMatrix()[0][0]);
+
+		// Light source
+		glm::vec3 lightPos = glm::vec3(4,4,4);
+		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
 		// Bind our texture in Texture Unit 0
 		glActiveTexture(GL_TEXTURE0);
@@ -202,6 +222,7 @@ int playground()
                 (void*)0            // array buffer offset
         );
 
+		// 2nd attribute buffer : UVs
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
 		glVertexAttribPointer(
@@ -213,10 +234,24 @@ int playground()
 				(void*)0                          // array buffer offset
 		);
 
-        // Draw the triangle !
-        glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertices.size()); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
+		// 3rd attribute buffer : normals
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+		glVertexAttribPointer(
+				1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+				3,                                // size
+				GL_FLOAT,                         // type
+				GL_FALSE,                         // normalized?
+				0,                                // stride
+				(void*)0                          // array buffer offset
+		);
+
+        // Draw the triangles !
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertices.size());
+
+		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
@@ -229,6 +264,7 @@ int playground()
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteBuffers(1, &uvbuffer);
+	glDeleteBuffers(1, &normalbuffer);
 	glDeleteProgram(programID);
 	glDeleteTextures(1, &Texture);
 	glDeleteVertexArrays(1, &VertexArrayID);
