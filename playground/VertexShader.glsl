@@ -9,10 +9,12 @@ layout(location = 2) in vec3 vertexNormal_modelspace;
 uniform mat4 MVP;
 uniform mat4 MV;
 uniform mat4 V;
+uniform mat4 M;
 uniform vec3 LightPosition_worldspace;
 
 // Output data ; will be interpolated for each fragment.
 out vec2 UV;
+out vec3 Position_worldspace;
 out vec3 Normal_cameraspace;
 out vec3 LightDirection_cameraspace;
 out vec3 EyeDirection_cameraspace;
@@ -23,6 +25,9 @@ void main() {
 
     // UV of the vertex. No special space for this one.
     UV = vertexUV;
+
+    // Position of the vertex, in worldspace : M * position
+	Position_worldspace = (M * vec4(vertexPosition_modelspace,1)).xyz;
 
     // Vector that goes from the vertex to the camera, in camera space.
     // In camera space, the camera is at the origin (0,0,0).

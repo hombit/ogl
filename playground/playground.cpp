@@ -152,10 +152,11 @@ int playground()
             "playground/FragmentShader.glsl"
     );
 
-	GLint MVP_ID = glGetUniformLocation(programID, "MVP");
-	GLint MV_ID = glGetUniformLocation(programID, "MV");
-	GLint View_ID = glGetUniformLocation(programID, "V");
-	GLint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+	GLint MVP_ID =   glGetUniformLocation(programID, "MVP");
+	GLint MV_ID =    glGetUniformLocation(programID, "MV");
+	GLint View_ID =  glGetUniformLocation(programID, "V");
+	GLint Model_ID = glGetUniformLocation(programID, "M");
+	GLint LightID =  glGetUniformLocation(programID, "LightPosition_worldspace");
 
 	// Load the texture
 	GLuint Texture = loadDDS("playground/uvmap.DDS");
@@ -166,7 +167,7 @@ int playground()
 	// Read our .obj file
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals; // Won't be used at the moment.
+	std::vector<glm::vec3> normals;
 	bool res = loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
 
 	// Load it into a VBO
@@ -193,12 +194,14 @@ int playground()
 		glUseProgram(programID);
 
 		auto mvp_ = MVP(3.0f);
+		auto mvp = mvp_.mvp();
 
 		// Send our transformation to the currently bound shader, in the "MVP" uniform
 		// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-		glUniformMatrix4fv(MVP_ID,   1, GL_FALSE, &mvp_.mvp()[0][0]);
+		glUniformMatrix4fv(MVP_ID,   1, GL_FALSE, &mvp[0][0]);
 		glUniformMatrix4fv(MV_ID,    1, GL_FALSE, &mvp_.mv() [0][0]);
 		glUniformMatrix4fv(View_ID,  1, GL_FALSE, &mvp_.getViewMatrix()[0][0]);
+		glUniformMatrix4fv(Model_ID, 1, GL_FALSE, &mvp_.getModelMatrix()[0][0]);
 
 		// Light source
 		glm::vec3 lightPos = glm::vec3(4,4,4);
@@ -226,7 +229,7 @@ int playground()
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
 		glVertexAttribPointer(
-				1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+				1,                                // attribute
 				2,                                // size
 				GL_FLOAT,                         // type
 				GL_FALSE,                         // normalized?
@@ -238,7 +241,7 @@ int playground()
 		glEnableVertexAttribArray(2);
 		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
 		glVertexAttribPointer(
-				1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+				2,                                // attribute
 				3,                                // size
 				GL_FLOAT,                         // type
 				GL_FALSE,                         // normalized?
@@ -256,7 +259,6 @@ int playground()
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-
 	} // Check if the Space key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_SPACE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
