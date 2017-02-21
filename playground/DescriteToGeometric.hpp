@@ -37,8 +37,7 @@ std::vector<glm::vec3> northern_hemisphere(const TriangleDiscreteCoordinates<T> 
                 gamma = 0;
             }
             if ( it->rho == 1 ){
-                alpha = 0;
-                beta  = 1;
+                beta  = 1 - alpha;
                 gamma = 0;
             }
             vertices[tdc.index(*it)] = glm::normalize( alpha * A + beta * B + gamma * C );

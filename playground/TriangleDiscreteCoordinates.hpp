@@ -114,7 +114,7 @@ public:
             return 0;
         }
         psi %= psi_size(rho);
-        return tr * rho * (rho - 1) / 2 + psi + 1;
+        return static_cast<T_INDEX>( tr * rho * (rho - 1) / 2 + psi + 1 );
     }
     T_INDEX index(DiscreteCoordinate dc) const{
         return index(dc.rho, dc.psi);

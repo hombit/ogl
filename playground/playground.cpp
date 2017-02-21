@@ -214,19 +214,11 @@ int playground()
 	// Get a handle for our "myTextureSampler" uniform
 	GLint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
-
-	// Read our .obj file
 	std::vector<vec3>           vertices;
 	std::vector<unsigned short> indeces;
 	std::vector<vec2>           uvs;
 	std::vector<vec3>           normals;
-//	loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
-	sphere(6, vertices, indeces, uvs, normals);
-    for ( auto &v : vertices ){
-        std::cout << v.x << "\t" << v.y << "\t" << v.z << std::endl;
-    }
-//    sphere_old(1, vertices, indeces, uvs, normals);
-	// Load it into a VBO
+	sphere(1, vertices, indeces, uvs, normals);
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
