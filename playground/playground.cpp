@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <iostream>
+#include <array>
+#include <algorithm>
 #include <vector>
 
 #include <GL/glew.h>
@@ -15,6 +17,56 @@ using namespace glm;
 #include <common/shader.hpp>
 #include <common/objloader.hpp>
 #include <common/texture.hpp>
+
+#include "TriangleDiscreteCoordinates.hpp"
+#include "DescriteToGeometric.hpp"
+
+
+template<typename T_VERTICES, typename T_INDECES, typename T_UVS, typename T_NORMALS>
+void sphere_old(size_t n, T_VERTICES &vertices, T_INDECES &indeces, T_UVS &uvs, T_NORMALS &normals){
+	typedef typename T_VERTICES::value_type vertices_type;
+	typedef typename vertices_type::value_type vec_element_type;
+	typedef typename T_INDECES::value_type indeces_type;
+	typedef typename T_UVS::value_type uvs_type;
+	typedef typename T_NORMALS::value_type normals_type;
+
+	std::array<uvs_type, 6> initial_vertices_spherical = {{
+		 { M_PI_2, 0},
+		 {      0, 0},
+		 {      0, M_PI_2},
+		 {      0, M_PI},
+         {      0, 3.*M_PI_2},
+		 {-M_PI_2, 0},
+	}};
+
+    std::array<vertices_type , 6> initial_vertices;
+	for ( size_t i = 0; i < initial_vertices.size(); ++i ){
+		initial_vertices[i] = euclidean(initial_vertices_spherical[i]);
+	}
+
+	std::array<indeces_type, 24> initial_indeces = {
+			0, 1, 2,
+			2, 0, 3,
+			3, 0, 4,
+			4, 0, 1,
+			1, 5, 2,
+			2, 5, 3,
+			3, 5, 4,
+			4, 5, 1,
+	};
+
+	std::array<uvs_type, 24> initial_uvs;
+	std::array<normals_type, 24> initial_normals;
+	for (size_t i = 0; i < initial_indeces.size(); ++i ){
+		initial_uvs[i] = initial_vertices_spherical[initial_indeces[i]];
+		initial_normals[i] = initial_vertices[initial_indeces[i]];
+	}
+
+	vertices.insert(vertices.begin(), initial_vertices.begin(), initial_vertices.end());
+	indeces.insert(indeces.begin(), initial_indeces.begin(), initial_indeces.end());
+	uvs.insert(uvs.begin(), initial_uvs.begin(), initial_uvs.end());
+	normals.insert(normals.begin(), initial_normals.begin(), initial_normals.end());
+}
 
 
 double ScrollXOffset = 0.;
@@ -55,35 +107,35 @@ public:
 		positionFromInput();
     };
 
-	glm::mat4 getProjectionMatrix(){
-		return glm::ortho(
+	mat4 getProjectionMatrix(){
+		return ortho(
 				-scale,scale,
 				-scale,scale,
 				0.0f,100.0f
 		);
 	}
 
-	glm::mat4 getViewMatrix(glm::vec2 spherical_coordinates){
-		return glm::lookAt(
-				scale * glm::euclidean(spherical_coordinates),
-				glm::vec3(0,0,0), // and looks at the origin
-				glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+	mat4 getViewMatrix(vec2 spherical_coordinates){
+		return lookAt(
+				scale * euclidean(spherical_coordinates),
+				vec3(0,0,0), // and looks at the origin
+				vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
 		);
 	}
 
-	glm::mat4 getViewMatrix(){
-		return getViewMatrix(glm::vec2(lat, lon));
+	mat4 getViewMatrix(){
+		return getViewMatrix(vec2(lat, lon));
 	}
 
-	glm::mat4 getModelMatrix(){
-		return glm::mat4(1.0f);
+	mat4 getModelMatrix(){
+		return mat4(1.0f);
 	}
 
-	glm::mat4 mv(){
+	mat4 mv(){
 		return getViewMatrix() * getModelMatrix();
 	}
 
-	glm::mat4 mvp(){
+	mat4 mvp(){
 		return getProjectionMatrix() * getViewMatrix() * getModelMatrix();
 	}
 };
@@ -133,7 +185,7 @@ int playground()
 	glDepthFunc(GL_LESS);
 
 	// Cull triangles which normal is not towards the camera
-	glEnable(GL_CULL_FACE);
+//	glEnable(GL_CULL_FACE);
 
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -164,27 +216,37 @@ int playground()
 
 
 	// Read our .obj file
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals;
-	loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
-
+	std::vector<vec3>           vertices;
+	std::vector<unsigned short> indeces;
+	std::vector<vec2>           uvs;
+	std::vector<vec3>           normals;
+//	loadOBJ("playground/suzanne.obj", vertices, uvs, normals);
+	sphere(6, vertices, indeces, uvs, normals);
+    for ( auto &v : vertices ){
+        std::cout << v.x << "\t" << v.y << "\t" << v.z << std::endl;
+    }
+//    sphere_old(1, vertices, indeces, uvs, normals);
 	// Load it into a VBO
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices[0], GL_STATIC_DRAW);
+
+	GLuint indexbuffer;
+	glGenBuffers(1, &indexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, indexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, indeces.size() * sizeof(unsigned short), &indeces[0], GL_STATIC_DRAW);
 
 	GLuint uvbuffer;
 	glGenBuffers(1, &uvbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(vec2), &uvs[0], GL_STATIC_DRAW);
 
 	GLuint normalbuffer;
 	glGenBuffers(1, &normalbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals[0], GL_STATIC_DRAW);
 
 	do{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -203,7 +265,7 @@ int playground()
 		glUniformMatrix4fv(Model_ID, 1, GL_FALSE, &mvp_.getModelMatrix()[0][0]);
 
 		// Light source
-		glm::vec3 lightPos = glm::vec3(4,4,4);
+		vec3 lightPos = vec3(4,4,4);
 		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
 		// Bind our texture in Texture Unit 0
@@ -248,8 +310,15 @@ int playground()
 				(void*)0                          // array buffer offset
 		);
 
-        // Draw the triangles !
-        glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertices.size());
+		// Index buffer
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
+		// Draw the triangles!
+		glDrawElements(
+				GL_TRIANGLES,             // mode
+				(GLsizei) indeces.size(), // count
+				GL_UNSIGNED_SHORT,        // type
+				(void*)0                  // element array buffer offset
+		);
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);

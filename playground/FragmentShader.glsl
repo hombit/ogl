@@ -50,14 +50,15 @@ void main(){
     float cosAlpha = clamp( dot( E,R ), 0,1 );
 
 //    color = MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance);
-    color =
-    	// Ambient : simulates indirect lighting
-    	MaterialAmbientColor +
-    	// Diffuse : "color" of the object
-    	MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
-    	// Specular : reflective highlight, like a mirror
-    	MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
+//    color =
+//    	// Ambient : simulates indirect lighting
+//    	MaterialAmbientColor +
+//    	// Diffuse : "color" of the object
+//    	MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
+//    	// Specular : reflective highlight, like a mirror
+//    	MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 
 	// Output color = color of the texture at the specified UV
-//    	color = texture( myTextureSampler, UV ).rgb;
+    	color = texture( myTextureSampler, UV ).rgb;
+//    	color = vec3(0.8,0.4,0.2);
 }

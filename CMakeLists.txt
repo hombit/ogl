@@ -526,7 +526,7 @@ add_executable(playground
 	common/texture.hpp
 	common/objloader.cpp
 	common/objloader.hpp
-)
+        playground/TriangleDiscreteCoordinates.hpp playground/DescriteToGeometric.hpp)
 target_link_libraries(playground
 	${ALL_LIBS}
 )
