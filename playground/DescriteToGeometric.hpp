@@ -23,25 +23,25 @@ std::vector<glm::vec3> northern_hemisphere(const TriangleDiscreteCoordinates<T> 
         const glm::vec3 B = glm::euclidean(glm::vec2(0, M_PI_2 * t));
         const glm::vec3 C = glm::euclidean(glm::vec2(0, M_PI_2 * (t + 1)));
         for ( auto it = tdc.triangle_begin(t); it != tdc.triangle_end(t); ++it ){
-            const value_type rho = it->rho;
-            const auto psi_length = tdc.psi_triangle_size(it->rho);
-            const value_type psi = it->psi % psi_length;
-            value_type Aw = (value_type) (tdc.rho_size - 1 - rho) / (tdc.rho_size - 1);
-//            Aw = (value_type) 1 - cos( M_PI_2 * Aw );
-            value_type Bw = (value_type) (psi_length - 1 - psi) / (psi_length - 1);
-            value_type Cw = (value_type) 1 - Bw;
+            const auto rho = static_cast<value_type>(it->rho);
+            const auto rho_length = static_cast<value_type>(tdc.rho_size);
+            const auto psi_length = static_cast<value_type>( tdc.psi_triangle_size(it->rho) );
+            const auto psi = static_cast<value_type>( it->psi % tdc.psi_triangle_size(it->rho) );
+
+            value_type alpha = 1 - rho / (rho_length - 1);
+            value_type beta  = (1 - alpha) * ( 1 - psi / (psi_length - 1) );
+            value_type gamma = 1 - alpha - beta;
             if ( it->rho == 0 ) {
-                Bw = 0;
-                Cw = 0;
+                alpha = 1;
+                beta  = 0;
+                gamma = 0;
             }
             if ( it->rho == 1 ){
-                Bw = 1;
-                Cw = 0;
+                alpha = 0;
+                beta  = 1;
+                gamma = 0;
             }
-            std::cout << Bw << std::endl;
-            vertices[tdc.index(*it)] = glm::normalize(
-                    Aw * A + Bw * B + Cw * C
-            );
+            vertices[tdc.index(*it)] = glm::normalize( alpha * A + beta * B + gamma * C );
         }
     }
 
