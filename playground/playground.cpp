@@ -22,51 +22,6 @@ using namespace glm;
 #include "DescriteToGeometric.hpp"
 
 
-template<typename T_VERTICES, typename T_INDECES, typename T_UVS, typename T_NORMALS>
-void sphere_old(size_t n, T_VERTICES &vertices, T_INDECES &indeces, T_UVS &uvs, T_NORMALS &normals){
-	typedef typename T_VERTICES::value_type vertices_type;
-	typedef typename vertices_type::value_type vec_element_type;
-	typedef typename T_INDECES::value_type indeces_type;
-	typedef typename T_UVS::value_type uvs_type;
-	typedef typename T_NORMALS::value_type normals_type;
-
-	std::array<uvs_type, 6> initial_vertices_spherical = {{
-		 { M_PI_2, 0},
-		 {      0, 0},
-		 {      0, M_PI_2},
-		 {      0, M_PI},
-         {      0, 3.*M_PI_2},
-		 {-M_PI_2, 0},
-	}};
-
-    std::array<vertices_type , 6> initial_vertices;
-	for ( size_t i = 0; i < initial_vertices.size(); ++i ){
-		initial_vertices[i] = euclidean(initial_vertices_spherical[i]);
-	}
-
-	std::array<indeces_type, 24> initial_indeces = {
-			0, 1, 2,
-			2, 0, 3,
-			3, 0, 4,
-			4, 0, 1,
-			1, 5, 2,
-			2, 5, 3,
-			3, 5, 4,
-			4, 5, 1,
-	};
-
-	std::array<uvs_type, 24> initial_uvs;
-	std::array<normals_type, 24> initial_normals;
-	for (size_t i = 0; i < initial_indeces.size(); ++i ){
-		initial_uvs[i] = initial_vertices_spherical[initial_indeces[i]];
-		initial_normals[i] = initial_vertices[initial_indeces[i]];
-	}
-
-	vertices.insert(vertices.begin(), initial_vertices.begin(), initial_vertices.end());
-	indeces.insert(indeces.begin(), initial_indeces.begin(), initial_indeces.end());
-	uvs.insert(uvs.begin(), initial_uvs.begin(), initial_uvs.end());
-	normals.insert(normals.begin(), initial_normals.begin(), initial_normals.end());
-}
 
 
 double ScrollXOffset = 0.;
@@ -80,6 +35,7 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset){
 class MVP{
 protected:
 	const float scale0;
+	const float translate_x;
 	float scale;
     const float mouseSpeed = 0.005f;
     float lat = 0.0f;
@@ -102,7 +58,7 @@ protected:
     }
 
 public:
-    MVP(float scale): scale0(scale), scale(scale){
+    MVP(float scale, float translate_x=0): scale0(scale), scale(scale), translate_x(translate_x){
         glfwSetScrollCallback(window, ScrollCallback);
 		positionFromInput();
     };
@@ -127,8 +83,20 @@ public:
 		return getViewMatrix(vec2(lat, lon));
 	}
 
+	mat4 getTranslationMatrix(){
+		return translate(vec3(translate_x,0,0));
+	}
+
+	mat4 getRotationMatrix(){
+		return mat4(1);
+	}
+
+	mat4 getScaleMatrix(){
+		return mat4(1);
+	}
+
 	mat4 getModelMatrix(){
-		return mat4(1.0f);
+		return getTranslationMatrix() * getRotationMatrix() * getScaleMatrix();
 	}
 
 	mat4 mv(){
@@ -214,35 +182,53 @@ int playground()
 	// Get a handle for our "myTextureSampler" uniform
 	GLint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
-	std::vector<vec3>           vertices;
-	std::vector<unsigned short> indeces;
-	std::vector<vec2>           uvs;
-	std::vector<vec3>           normals;
-//	auto sph = Sphere<unsigned  short>(4);
-//	sph.get_viun(vertices, indeces, uvs, normals);
+	glm::vec3 lightPos = glm::vec3(-1.5,0,0);
 
-	auto cir = Circle<unsigned  short>(4);
-	cir.get_viun(vertices, indeces, uvs, normals);
+	std::vector<vec3>           star_vertices;
+	std::vector<unsigned short> star_indeces;
+	std::vector<vec2>           star_uvs;
+	std::vector<vec3>           star_normals;
+    auto star = Sphere<unsigned  short>(4);
+	star.get_viun(star_vertices, star_indeces, star_uvs, star_normals);
+	GLuint star_vertex_buffer;
+	glGenBuffers(1, &star_vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, star_vertex_buffer);
+	glBufferData(GL_ARRAY_BUFFER, star_vertices.size() * sizeof(vec3), &star_vertices[0], GL_STATIC_DRAW);
+	GLuint star_index_buffer;
+	glGenBuffers(1, &star_index_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, star_index_buffer);
+	glBufferData(GL_ARRAY_BUFFER, star_indeces.size() * sizeof(unsigned short), &star_indeces[0], GL_STATIC_DRAW);
+	GLuint star_uv_buffer;
+	glGenBuffers(1, &star_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, star_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, star_uvs.size() * sizeof(vec2), &star_uvs[0], GL_STATIC_DRAW);
+	GLuint star_normal_buffer;
+	glGenBuffers(1, &star_normal_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, star_normal_buffer);
+	glBufferData(GL_ARRAY_BUFFER, star_normals.size() * sizeof(vec3), &star_normals[0], GL_STATIC_DRAW);
 
-	GLuint vertexbuffer;
-	glGenBuffers(1, &vertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices[0], GL_STATIC_DRAW);
-
-	GLuint indexbuffer;
-	glGenBuffers(1, &indexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, indexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, indeces.size() * sizeof(unsigned short), &indeces[0], GL_STATIC_DRAW);
-
-	GLuint uvbuffer;
-	glGenBuffers(1, &uvbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(vec2), &uvs[0], GL_STATIC_DRAW);
-
-	GLuint normalbuffer;
-	glGenBuffers(1, &normalbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals[0], GL_STATIC_DRAW);
+	std::vector<vec3>           disk_vertices;
+	std::vector<unsigned short> disk_indeces;
+	std::vector<vec2>           disk_uvs;
+	std::vector<vec3>           disk_normals;
+	auto disk = Circle<unsigned  short>(4);
+	disk.get_viun(disk_vertices, disk_indeces, disk_uvs, disk_normals);
+	GLuint disk_vertex_buffer;
+	glGenBuffers(1, &disk_vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, disk_vertex_buffer);
+	glBufferData(GL_ARRAY_BUFFER, disk_vertices.size() * sizeof(vec3), &disk_vertices[0], GL_STATIC_DRAW);
+	GLuint disk_index_buffer;
+	glGenBuffers(1, &disk_index_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, disk_index_buffer);
+	glBufferData(GL_ARRAY_BUFFER, disk_indeces.size() * sizeof(unsigned short), &disk_indeces[0], GL_STATIC_DRAW);
+	GLuint disk_uv_buffer;
+	glGenBuffers(1, &disk_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, disk_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, disk_uvs.size() * sizeof(vec2), &disk_uvs[0], GL_STATIC_DRAW);
+	GLuint disk_normal_buffer;
+	glGenBuffers(1, &disk_normal_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, disk_normal_buffer);
+	glBufferData(GL_ARRAY_BUFFER, disk_normals.size() * sizeof(vec3), &disk_normals[0], GL_STATIC_DRAW);
 
 	do{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -250,75 +236,141 @@ int playground()
 		// Use our shader
 		glUseProgram(programID);
 
-		auto mvp_ = MVP(3.0f);
-		auto mvp = mvp_.mvp();
-
-		// Send our transformation to the currently bound shader, in the "MVP" uniform
-		// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-		glUniformMatrix4fv(MVP_ID,   1, GL_FALSE, &mvp[0][0]);
-		glUniformMatrix4fv(MV_ID,    1, GL_FALSE, &mvp_.mv() [0][0]);
-		glUniformMatrix4fv(View_ID,  1, GL_FALSE, &mvp_.getViewMatrix()[0][0]);
-		glUniformMatrix4fv(Model_ID, 1, GL_FALSE, &mvp_.getModelMatrix()[0][0]);
-
-		// Light source
-		vec3 lightPos = vec3(4,4,4);
 		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
-		// Bind our texture in Texture Unit 0
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture);
-		// Set our "myTextureSampler" sampler to user Texture Unit 0
-		glUniform1i(TextureID, 0);
+		{
+			auto mvp = MVP(3.0f, 1.5f);
 
-        // 1rst attribute buffer : vertices
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-        glVertexAttribPointer(
-                0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-                3,                  // size
-                GL_FLOAT,           // type
-                GL_FALSE,           // normalized?
-                0,                  // stride
-                (void*)0            // array buffer offset
-        );
+			// Send our transformation to the currently bound shader, in the "MVP" uniform
+			// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+			glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &mvp.mvp()[0][0]);
+			glUniformMatrix4fv(MV_ID, 1, GL_FALSE, &mvp.mv()[0][0]);
+			glUniformMatrix4fv(View_ID, 1, GL_FALSE, &mvp.getViewMatrix()[0][0]);
+			glUniformMatrix4fv(Model_ID, 1, GL_FALSE, &mvp.getModelMatrix()[0][0]);
 
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-		glVertexAttribPointer(
-				1,                                // attribute
-				2,                                // size
-				GL_FLOAT,                         // type
-				GL_FALSE,                         // normalized?
-				0,                                // stride
-				(void*)0                          // array buffer offset
-		);
+			// Bind our texture in Texture Unit 0
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Texture);
+			// Set our "myTextureSampler" sampler to user Texture Unit 0
+			glUniform1i(TextureID, 0);
 
-		// 3rd attribute buffer : normals
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-		glVertexAttribPointer(
-				2,                                // attribute
-				3,                                // size
-				GL_FLOAT,                         // type
-				GL_FALSE,                         // normalized?
-				0,                                // stride
-				(void*)0                          // array buffer offset
-		);
+			// 1rst attribute buffer : vertices
+			glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, star_vertex_buffer);
+			glVertexAttribPointer(
+					0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+					3,                  // size
+					GL_FLOAT,           // type
+					GL_FALSE,           // normalized?
+					0,                  // stride
+					(void *) 0            // array buffer offset
+			);
 
-		// Index buffer
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
-		// Draw the triangles!
-		glDrawElements(
-				GL_TRIANGLES,             // mode
-				(GLsizei) indeces.size(), // count
-				GL_UNSIGNED_SHORT,        // type
-				(void*)0                  // element array buffer offset
-		);
+			// 2nd attribute buffer : UVs
+			glEnableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, star_uv_buffer);
+			glVertexAttribPointer(
+					1,                                // attribute
+					2,                                // size
+					GL_FLOAT,                         // type
+					GL_FALSE,                         // normalized?
+					0,                                // stride
+					(void *) 0                          // array buffer offset
+			);
 
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
+			// 3rd attribute buffer : normals
+			glEnableVertexAttribArray(2);
+			glBindBuffer(GL_ARRAY_BUFFER, star_normal_buffer);
+			glVertexAttribPointer(
+					2,                                // attribute
+					3,                                // size
+					GL_FLOAT,                         // type
+					GL_FALSE,                         // normalized?
+					0,                                // stride
+					(void *) 0                          // array buffer offset
+			);
+
+			// Index buffer
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, star_index_buffer);
+			// Draw the triangles!
+			glDrawElements(
+					GL_TRIANGLES,             // mode
+					(GLsizei) star_indeces.size(), // count
+					GL_UNSIGNED_SHORT,        // type
+					(void *) 0                  // element array buffer offset
+			);
+
+			glDisableVertexAttribArray(0);
+			glDisableVertexAttribArray(1);
+			glDisableVertexAttribArray(2);
+		}
+
+		{
+			auto mvp = MVP(3.0f, -1.5f);
+
+			// Send our transformation to the currently bound shader, in the "MVP" uniform
+			// This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+			glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &mvp.mvp()[0][0]);
+			glUniformMatrix4fv(MV_ID, 1, GL_FALSE, &mvp.mv()[0][0]);
+			glUniformMatrix4fv(View_ID, 1, GL_FALSE, &mvp.getViewMatrix()[0][0]);
+			glUniformMatrix4fv(Model_ID, 1, GL_FALSE, &mvp.getModelMatrix()[0][0]);
+
+			// Bind our texture in Texture Unit 0
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Texture);
+			// Set our "myTextureSampler" sampler to user Texture Unit 0
+			glUniform1i(TextureID, 0);
+
+			// 1rst attribute buffer : vertices
+			glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, disk_vertex_buffer);
+			glVertexAttribPointer(
+					0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+					3,                  // size
+					GL_FLOAT,           // type
+					GL_FALSE,           // normalized?
+					0,                  // stride
+					(void *) 0            // array buffer offset
+			);
+
+			// 2nd attribute buffer : UVs
+			glEnableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, disk_uv_buffer);
+			glVertexAttribPointer(
+					1,                                // attribute
+					2,                                // size
+					GL_FLOAT,                         // type
+					GL_FALSE,                         // normalized?
+					0,                                // stride
+					(void *) 0                          // array buffer offset
+			);
+
+			// 3rd attribute buffer : normals
+			glEnableVertexAttribArray(2);
+			glBindBuffer(GL_ARRAY_BUFFER, disk_normal_buffer);
+			glVertexAttribPointer(
+					2,                                // attribute
+					3,                                // size
+					GL_FLOAT,                         // type
+					GL_FALSE,                         // normalized?
+					0,                                // stride
+					(void *) 0                          // array buffer offset
+			);
+
+			// Index buffer
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, disk_index_buffer);
+			// Draw the triangles!
+			glDrawElements(
+					GL_TRIANGLES,             // mode
+					(GLsizei) disk_indeces.size(), // count
+					GL_UNSIGNED_SHORT,        // type
+					(void *) 0                  // element array buffer offset
+			);
+
+			glDisableVertexAttribArray(0);
+			glDisableVertexAttribArray(1);
+			glDisableVertexAttribArray(2);
+		}
 
 		// Swap buffers
 		glfwSwapBuffers(window);
@@ -328,9 +380,14 @@ int playground()
 		   glfwWindowShouldClose(window) == 0 );
 
 	// Cleanup VBO and shader
-	glDeleteBuffers(1, &vertexbuffer);
-	glDeleteBuffers(1, &uvbuffer);
-	glDeleteBuffers(1, &normalbuffer);
+	glDeleteBuffers(1, &star_vertex_buffer);
+	glDeleteBuffers(1, &star_uv_buffer);
+	glDeleteBuffers(1, &star_normal_buffer);
+	glDeleteBuffers(1, &star_index_buffer);
+	glDeleteBuffers(1, &disk_vertex_buffer);
+	glDeleteBuffers(1, &disk_uv_buffer);
+	glDeleteBuffers(1, &disk_normal_buffer);
+	glDeleteBuffers(1, &disk_index_buffer);
 	glDeleteProgram(programID);
 	glDeleteTextures(1, &Texture);
 	glDeleteVertexArrays(1, &VertexArrayID);
