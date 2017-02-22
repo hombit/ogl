@@ -218,7 +218,11 @@ int playground()
 	std::vector<unsigned short> indeces;
 	std::vector<vec2>           uvs;
 	std::vector<vec3>           normals;
-	sphere(4, vertices, indeces, uvs, normals);
+//	auto sph = Sphere<unsigned  short>(4);
+//	sph.get_viun(vertices, indeces, uvs, normals);
+
+	auto cir = Circle<unsigned  short>(4);
+	cir.get_viun(vertices, indeces, uvs, normals);
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
