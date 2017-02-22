@@ -218,7 +218,7 @@ int playground()
 	std::vector<unsigned short> indeces;
 	std::vector<vec2>           uvs;
 	std::vector<vec3>           normals;
-	sphere(1, vertices, indeces, uvs, normals);
+	sphere(6, vertices, indeces, uvs, normals);
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
