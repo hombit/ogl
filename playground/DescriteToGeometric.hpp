@@ -83,11 +83,11 @@ void sphere(size_t splits,
 
     uvs.clear();
     for ( auto &vert : verts ){
-        const auto xz_dist = static_cast<value_type>( vert.x * vert.x + vert.z * vert.z );
-        const auto theta   = static_cast<value_type>( atan(xz_dist / vert.y) );
-        const auto phi     = static_cast<value_type>( atan2( vert.x, vert.z ) );
-        const auto v       = static_cast<value_type>( (theta + M_PI_2) / M_PI );
-        const auto u       = static_cast<value_type>( (phi + M_PI) / ( 2 * M_PI ) );
+        const auto polar  = glm::polar(vert);
+        const auto theta  = static_cast<value_type>(polar.x);
+        const auto phi    = static_cast<value_type>(polar.y);
+        const auto v      = static_cast<value_type>( (theta + M_PI_2) / M_PI );
+        const auto u      = static_cast<value_type>( (phi + M_PI) / ( 2 * M_PI ) );
         uvs.emplace_back( u, v );
     }
 
