@@ -7,7 +7,8 @@ in vec3 LightDirection_cameraspace;
 in vec3 EyeDirection_cameraspace;
 
 // Ouput data
-out vec3 color;
+//out vec3 color;
+layout(location = 0) out vec3 color;
 
 // Values that stay constant for the whole mesh.
 uniform sampler2D myTextureSampler;
@@ -16,13 +17,13 @@ uniform vec3 LightPosition_worldspace;
 void main(){
     // Light emission properties
     // You probably want to put them as uniforms
-    vec3 LightColor = vec3(1,0.2,0);
+    vec3 LightColor = vec3(1.0, 0.2, 0.0);
     float LightPower = 20.0f;
 
     // Material properties
 //    vec3 MaterialDiffuseColor = texture( myTextureSampler, UV ).rgb;
-    vec3 MaterialDiffuseColor = vec3(0.2,1,0);
-    vec3 MaterialAmbientColor = vec3(0.5,0.5,0.5) * MaterialDiffuseColor;
+    vec3 MaterialDiffuseColor = vec3(0.2, 1.0, 0.0);
+    vec3 MaterialAmbientColor = vec3(0.5, 0.5, 0.5) * MaterialDiffuseColor;
 //    vec3 MaterialSpecularColor = vec3(0.0,0.0,0.0);
 
     // Distance to the light
@@ -38,7 +39,7 @@ void main(){
     //  - light is at the vertical of the triangle -> 1
     //  - light is perpendicular to the triangle -> 0
     //  - light is behind the triangle -> 0
-    float cosTheta = clamp( dot( n,l ), 0,1 );
+    float cosTheta = clamp( dot( n,l ), 0, 1 );
 
     // Eye vector (towards the camera)
 //    vec3 E = normalize(EyeDirection_cameraspace);
@@ -48,7 +49,7 @@ void main(){
     // clamped to 0
     //  - Looking into the reflection -> 1
     //  - Looking elsewhere -> < 1
-//    float cosAlpha = clamp( dot( E,R ), 0,1 );
+//    float cosAlpha = clamp( dot( E,R ), 0, 1 );
 
     color = MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance);
     color =
