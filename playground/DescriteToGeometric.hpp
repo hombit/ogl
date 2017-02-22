@@ -60,7 +60,7 @@ void sphere(size_t splits,
 
     auto verts = northern_hemisphere(tdc);
     // Add southern hemisphere vertices
-    const size_t last_line = tdc.tr * (tdc.rho_size - 2) * (tdc.rho_size - 3) / 2 + 1;
+    const size_t last_line = tdc.tr * (tdc.rho_size - 2) * (tdc.rho_size - 1) / 2 + 1;
     for ( size_t i = 0; i < last_line; ++i ){
         auto southern_vert = verts[i];
         southern_vert.y *= -1;
